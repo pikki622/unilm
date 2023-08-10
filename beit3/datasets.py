@@ -90,7 +90,7 @@ class BaseDataset(torch.utils.data.Dataset):
         data["padding_mask"] = padding_mask
 
     def __getitem__(self, index: int):
-        data = dict()
+        data = {}
         self._get_image_text_example(index, data)
         return data
 
@@ -98,7 +98,7 @@ class BaseDataset(torch.utils.data.Dataset):
         return len(self.items)
 
     def __repr__(self) -> str:
-        head = "Dataset " + self.__class__.__name__
+        head = f"Dataset {self.__class__.__name__}"
         body = '{' + "\n  Number of items: %s," % self.__len__()
         body += "\n  data root = %s," % self.data_path
         body += "\n  split = %s," % self.split
@@ -130,7 +130,7 @@ def _make_retrieval_coco_karpathy_dataset_index(
     coco_karpathy_split_json_file = os.path.join(data_path, "dataset_coco.json")
     items = []
     image_counter = set()
-    print("read %s" % coco_karpathy_split_json_file)
+    print(f"read {coco_karpathy_split_json_file}")
     with open(coco_karpathy_split_json_file, mode="r", encoding="utf-8") as reader:
         data = json.loads(reader.read())
         for item in data["images"]:
@@ -148,9 +148,8 @@ def _make_retrieval_coco_karpathy_dataset_index(
                     image_counter.add(image_path)
     print("Find %d images and %d image-text pairs for karpathy dataset %s split !" % \
         (len(image_counter), len(items), split_name))
-    index_file = os.path.join(data_path, "coco_retrieval.%s.jsonl" % split_name)
+    index_file = os.path.join(data_path, f"coco_retrieval.{split_name}.jsonl")
     _write_data_into_jsonl(items, index_file)
-    pass
 
 
 def _make_captioning_coco_karpathy_dataset_index(
@@ -162,7 +161,7 @@ def _make_captioning_coco_karpathy_dataset_index(
     coco_karpathy_split_json_file = os.path.join(data_path, "dataset_coco.json")
     items = []
     image_counter = set()
-    print("read %s" % coco_karpathy_split_json_file)
+    print(f"read {coco_karpathy_split_json_file}")
     with open(coco_karpathy_split_json_file, mode="r", encoding="utf-8") as reader:
         data = json.loads(reader.read())
         for item in data["images"]:
@@ -187,23 +186,22 @@ def _make_captioning_coco_karpathy_dataset_index(
                     image_counter.add(image_path)
     print("Find %d images and %d image-text pairs for karpathy dataset %s split !" % \
         (len(image_counter), len(items), split_name))
-    index_file = os.path.join(data_path, "coco_captioning.%s.jsonl" % split_name)
+    index_file = os.path.join(data_path, f"coco_captioning.{split_name}.jsonl")
     _write_data_into_jsonl(items, index_file)
-    pass
 
 
 def _make_nocaps_dataset_index(
         data_path,  
         split="val", 
 ):
-    if split == "val":
-        json_file = "nocaps_val_4500_captions.json"
-    elif split == "test":
+    if split == "test":
         json_file = "nocaps_test_image_info.json"
+    elif split == "val":
+        json_file = "nocaps_val_4500_captions.json"
     nocaps_split_json_file = os.path.join(data_path, json_file)
     items = []
     image_counter = set()
-    print("read %s" % nocaps_split_json_file)
+    print(f"read {nocaps_split_json_file}")
     with open(nocaps_split_json_file, mode="r", encoding="utf-8") as reader:
         data = json.loads(reader.read())
         for item in data["images"]:
@@ -219,7 +217,7 @@ def _make_nocaps_dataset_index(
 
     print("Find %d images and %d image-text pairs for nocaps dataset %s split !" % \
         (len(image_counter), len(items), split))
-    index_file = os.path.join(data_path, "nocaps.%s.jsonl" % split)
+    index_file = os.path.join(data_path, f"nocaps.{split}.jsonl")
     _write_data_into_jsonl(items, index_file)
 
 
@@ -233,7 +231,7 @@ class NLVR2Dataset(BaseDataset):
         elif split == "test":
             return ("nlvr2.test-P.index.jsonl", )
         else:
-            raise RuntimeError("split %s is not found!" % split)
+            raise RuntimeError(f"split {split} is not found!")
 
     def __getitem__(self, index: int):
         data = super().__getitem__(index)
@@ -254,13 +252,15 @@ class NLVR2Dataset(BaseDataset):
                 path = os.path.join(path, "-".join(data["identifier"].split("-")[:-1]))
                 tokens = tokenizer.tokenize(data["sentence"])
                 token_ids = tokenizer.convert_tokens_to_ids(tokens)
-                items.append({
-                    "image_path": path + "-img0.png",
-                    "image2_path": path + "-img1.png",
-                    "text_segment": token_ids,
-                    "label": 1 if data["label"] == "True" else 0,
-                    "identifier": data["identifier"], 
-                })
+                items.append(
+                    {
+                        "image_path": f"{path}-img0.png",
+                        "image2_path": f"{path}-img1.png",
+                        "text_segment": token_ids,
+                        "label": 1 if data["label"] == "True" else 0,
+                        "identifier": data["identifier"],
+                    }
+                )
         _write_data_into_jsonl(items, index_file)
 
     @classmethod
@@ -284,21 +284,16 @@ class ImageNetDataset(BaseDataset):
     def get_index_files(split, task=None):
         if split == "train":
             return ("imagenet.train.index.jsonl", )
-        elif split == "val":
-            return ("imagenet.val.index.jsonl", )
-        elif split == "test":
+        elif split in ["val", "test"]:
             return ("imagenet.val.index.jsonl", )
         else:
-            raise RuntimeError("split %s is not found!" % split)
+            raise RuntimeError(f"split {split} is not found!")
 
     def __getitem__(self, index: int):
-        data = dict()
         item = self.items[index]
         img_path = item["image_path"]
         img = self._get_image(img_path)
-        data["image"] = img
-        data["label"] = item["label"]
-        return data
+        return {"image": img, "label": item["label"]}
     
     @staticmethod
     def _find_classes(dir):
@@ -378,9 +373,9 @@ class VQAv2Dataset(BaseDataset):
         elif split == "test":
             return ("vqa.test.jsonl", )
         elif split == "test-dev":
-            return ("vqa.test-dev.jsonl", )            
+            return ("vqa.test-dev.jsonl", )
         else:
-            raise RuntimeError("split %s is not found!" % split)
+            raise RuntimeError(f"split {split} is not found!")
 
     def __getitem__(self, index: int):
         data = super().__getitem__(index)
@@ -422,7 +417,7 @@ class VQAv2Dataset(BaseDataset):
         with open(os.path.join(annotation_data_path, "v2_mscoco_val2014_annotations.json"), "r") as fp:
             annotations_val2014 = json.load(fp)["annotations"]
 
-        annotations = dict()
+        annotations = {}
 
         for split, questions in zip(
             ["train", "val", "test", "test-dev"],
@@ -442,15 +437,13 @@ class VQAv2Dataset(BaseDataset):
 
             annotations[split] = _annot
 
-        all_major_answers = list()
+        all_major_answers = []
 
         for split, annots in zip(
             ["train", "val"], [annotations_train2014, annotations_val2014],
         ):
             # _annot = annotations[split]
-            for q in annots:
-                all_major_answers.append(q["multiple_choice_answer"])
-
+            all_major_answers.extend(q["multiple_choice_answer"] for q in annots)
         all_major_answers = [normalize_word(word) for word in all_major_answers]
         counter = {k: v for k, v in Counter(all_major_answers).items() if v >= 9}
         ans2label = {k: i for i, k in enumerate(counter.keys())}
@@ -482,13 +475,11 @@ class VQAv2Dataset(BaseDataset):
                 _annot[q["image_id"]][q["question_id"]]["scores"] = scores
 
         for split in ["train", "val"]:
-            filtered_annot = dict()
+            filtered_annot = {}
             for ik, iv in annotations[split].items():
-                new_q = dict()
-                for qk, qv in iv.items():
-                    if len(qv["labels"]) != 0:
-                        new_q[qk] = qv
-                if len(new_q) != 0:
+                if new_q := {
+                    qk: qv for qk, qv in iv.items() if len(qv["labels"]) != 0
+                }:
                     filtered_annot[ik] = new_q
             annotations[split] = filtered_annot
 
@@ -504,7 +495,7 @@ class VQAv2Dataset(BaseDataset):
             paths = list(glob.glob(f"{data_path}/{split_name}/*.jpg"))
             random.shuffle(paths)
             annot_paths = [path for path in paths \
-                if int(path.split("/")[-1].split("_")[-1][:-4]) in annot]
+                    if int(path.split("/")[-1].split("_")[-1][:-4]) in annot]
 
             if len(paths) == len(annot_paths):
                 print("all images have caption annotations")
@@ -533,13 +524,16 @@ class VQAv2Dataset(BaseDataset):
                     })
             split2items[split] = items
 
-            _write_data_into_jsonl(items=items, jsonl_file=os.path.join(data_path, "vqa.%s.jsonl" % split))
+            _write_data_into_jsonl(
+                items=items,
+                jsonl_file=os.path.join(data_path, f"vqa.{split}.jsonl"),
+            )
 
         # Following ViLT, we use 1000 images of the original val set as the final val set        
         val_image2items = defaultdict(list)
         for item in split2items["val"]:
             val_image2items[item["image_path"]].append(item)
-        
+
         print("Contains %d image and %d pairs for val set!" % (len(val_image2items), len(split2items["val"])))
 
         val_images = list(val_image2items.keys())
@@ -551,7 +545,7 @@ class VQAv2Dataset(BaseDataset):
                 rest_val += val_image2items[image_id]
             else:
                 trainable_val += val_image2items[image_id]
-        
+
         _write_data_into_jsonl(items=trainable_val, jsonl_file=os.path.join(data_path, "vqa.trainable_val.jsonl"))
         _write_data_into_jsonl(items=rest_val, jsonl_file=os.path.join(data_path, "vqa.rest_val.jsonl"))
 
@@ -574,7 +568,7 @@ class RetrievalDataset(BaseDataset):
         elif split == "test":
             return (f"{task}.test.jsonl", )
         else:
-            raise RuntimeError("split %s is not found!" % split)
+            raise RuntimeError(f"split {split} is not found!")
 
     def __getitem__(self, index: int):
         data = super().__getitem__(index)
@@ -610,7 +604,10 @@ class RetrievalDataset(BaseDataset):
 
         for split in split2items:
             print("%d images and %d image-text pairs!" % (len(split2images[split]), len(split2items[split])))
-            _write_data_into_jsonl(split2items[split], os.path.join(data_path, "flickr30k.%s.jsonl" % split))
+            _write_data_into_jsonl(
+                split2items[split],
+                os.path.join(data_path, f"flickr30k.{split}.jsonl"),
+            )
 
     @staticmethod
     def make_coco_dataset_index(data_path, tokenizer):
@@ -641,7 +638,7 @@ class CaptioningDataset(BaseDataset):
         elif split == "test":
             return (f"{task}.test.jsonl", )
         else:
-            raise RuntimeError("split %s is not found!" % split)
+            raise RuntimeError(f"split {split} is not found!")
 
     def _get_mask_token(self, token):
         p = random.random()
@@ -667,19 +664,16 @@ class CaptioningDataset(BaseDataset):
         return tokens, bool_masked_pos
 
     def __getitem__(self, index: int):
-        data = dict()
         item = self.items[index]
         img_path = item["image_path"]
         img = self._get_image(img_path)
-        data["image"] = img
-        data["image_id"] = item["image_id"]
-
+        data = {"image": img, "image_id": item["image_id"]}
         text_segment = item["text_segment"]
         if text_segment is not None:
             language_tokens, padding_mask, num_tokens = self._get_text_segment(text_segment)
             masked_tokens = language_tokens[:]
             masked_tokens, language_masked_pos = \
-                self._masking_on_text_tokens(masked_tokens, num_tokens, self.mask_prob)
+                    self._masking_on_text_tokens(masked_tokens, num_tokens, self.mask_prob)
             data["language_tokens"] = language_tokens
             data["masked_tokens"] = masked_tokens
             data["language_masked_pos"] = language_masked_pos
@@ -795,13 +789,20 @@ def build_imagenet_transform(is_train, args):
         if args.crop_pct is None:
             args.crop_pct = 1.0
         size = int(args.input_size / args.crop_pct)
-        t.append(
-            transforms.Resize(size, interpolation=3),  # to maintain same ratio w.r.t. 224 images
+        t.extend(
+            (
+                transforms.Resize(size, interpolation=3),
+                transforms.CenterCrop(args.input_size),
+            )
         )
-        t.append(transforms.CenterCrop(args.input_size))
-
-    t.append(transforms.ToTensor())
-    t.append(transforms.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD))
+    t.extend(
+        (
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD
+            ),
+        )
+    )
     return transforms.Compose(t)
 
 
